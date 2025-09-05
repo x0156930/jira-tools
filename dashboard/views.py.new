@@ -1,0 +1,56 @@
+from django.shortcuts import render, redirect
+from django.views.decorators.csrf import csrf_protect
+from django.contrib import messages
+from django.conf import settings
+import os
+from jira import JIRA
+from .jira_logic import connect_to_jira, get_jira_details
+
+# Store credentials in session after login
+@csrf_protect
+def login_view(request):
+    if request.method == 'POST':
+        jira_url = request.POST.get('jira_url')
+        jira_username = request.POST.get('jira_username')
+        jira_pat = request.POST.get('jira_pat')
+        try:
+            jira = JIRA(server=jira_url, token_auth=jira_pat)
+            # Test connection
+            jira.myself()
+            request.session['jira_url'] = jira_url
+            request.session['jira_username'] = jira_username
+            request.session['jira_pat'] = jira_pat
+            return redirect('dashboard')
+        except Exception as e:
+            return render(request, 'login.html', {'error': f'Login failed: {e}'})
+    return render(request, 'login.html')
+
+def dashboard_view(request):
+    if not request.session.get('jira_url') or not request.session.get('jira_pat'):
+        return redirect('login')
+    # Placeholder for dashboard features
+    return render(request, 'dashboard.html', {'username': request.session.get('jira_username')})
+
+def daily_work_hours_view(request):
+    if not request.session.get('jira_url') or not request.session.get('jira_pat'):
+        return redirect('login')
+    result = None
+    error = None
+    if request.method == 'POST':
+        date_str = request.POST.get('date')
+        jira, jira_username = connect_to_jira(
+            request.session['jira_url'],
+            request.session['jira_username'],
+            request.session['jira_pat']
+        )
+        if jira:
+            issues, error = get_jira_details(jira, jira_username, date_str)
+            result = issues
+        else:
+            error = 'Could not connect to Jira.'
+    return render(request, 'daily_work_hours.html', {'result': result, 'error': error})
+
+def logout_view(request):
+    # Clear session data
+    request.session.flush()
+    return redirect('login')

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Work Hours Report</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/dashboard.css">
+    <style>
+        .report-container { max-width: 700px; margin: 40px auto; background: #fff; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.10); padding: 32px; }
+        h2 { color: #6e8efb; margin-bottom: 24px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; color: #333; }
+        input[type="text"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
+        .btn { background: #6e8efb; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; cursor: pointer; }
+        .btn:hover { background: #a777e3; }
+        .error { color: #e74c3c; margin-bottom: 12px; }
+        .results { margin-top: 24px; }
+        .issue { background: #f4f6fb; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: #6e8efb; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    {% load dashboard_extras %}
+    <div class="report-container">
+        <a href="/dashboard/" class="back-link"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
+        <h2><i class="fa-solid fa-clock"></i> Daily Work Hours Report</h2>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="date">Date (e.g., '2025-09-05', 'yesterday'):</label>
+                <input type="text" id="date" name="date" required>
+            </div>
+            <button type="submit" class="btn">Get Report</button>
+        </form>
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        <div class="results">
+            {% if result %}
+                <h3>Summary for {{ result.target_date }}</h3>
+                <p>Total Hours Logged: <strong>{{ result.total_hours_logged|floatformat:2 }}</strong></p>
+                
+                {% if result.created_issues %}
+                    <h4>Issues Created:</h4>
+                    {% for issue in result.created_issues %}
+                        <div class="issue">
+                            <strong>{{ issue.key }}</strong>: {{ issue.fields.summary }}
+                        </div>
+                    {% empty %}
+                        <div>No issues created on this date.</div>
+                    {% endfor %}
+                {% endif %}
+                
+                {% if result.logged_issues %}
+                    <h4>Issues Worked On:</h4>
+                    {% for issue in result.logged_issues %}
+                        <div class="issue">
+                            <strong>{{ issue.key }}</strong>: {{ issue.fields.summary }}
+                            {% if issue.key in result.issue_hours %}
+                                <div>Hours: {{ result.issue_hours|get_item:issue.key|floatformat:2 }}</div>
+                            {% endif %}
+                        </div>
+                    {% empty %}
+                        <div>No work logged on this date.</div>
+                    {% endfor %}
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

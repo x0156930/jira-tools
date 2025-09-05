@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jira Productivity Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/dashboard.css">
+    <style>
+        body { background: #f4f6fb; font-family: 'Segoe UI', sans-serif; }
+        .dashboard-container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 18px; box-shadow: 0 8px 32px rgba(0,0,0,0.10); padding: 40px; }
+        h2 { color: #6e8efb; margin-bottom: 24px; }
+        .welcome { font-size: 1.2rem; margin-bottom: 32px; }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+        .card { background: linear-gradient(135deg, #6e8efb, #a777e3); color: #fff; border-radius: 14px; padding: 28px 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); text-align: center; transition: transform 0.2s; cursor: pointer; }
+        .card:hover { transform: translateY(-6px) scale(1.03); }
+        .card i { font-size: 2.2rem; margin-bottom: 12px; }
+        .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 6px; }
+        .logout-btn { float: right; background: #e74c3c; color: #fff; border: none; padding: 8px 18px; border-radius: 8px; font-size: 1rem; cursor: pointer; margin-top: -10px; }
+        .logout-btn:hover { background: #c0392b; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <button class="logout-btn" onclick="window.location.href='/logout'">Logout</button>
+        <h2><i class="fa-solid fa-chart-line"></i> Jira Productivity Dashboard</h2>
+        <div class="welcome">Welcome, <strong>{{ username }}</strong>! Select a report below:</div>
+        <div class="card-grid">
+            <div class="card" onclick="window.location.href='/report/daily'">
+                <i class="fa-solid fa-calendar-day"></i>
+                <div class="card-title">Daily Work Hours</div>
+                <div>View work hours for a specific day</div>
+            </div>
+            <div class="card" onclick="window.location.href='/report/productivity'">
+                <i class="fa-solid fa-bolt"></i>
+                <div class="card-title">Daily Productivity</div>
+                <div>Check productivity for a day</div>
+            </div>
+            <div class="card" onclick="window.location.href='/report/weekly'">
+                <i class="fa-solid fa-calendar-week"></i>
+                <div class="card-title">Weekly Productivity</div>
+                <div>See your weekly report</div>
+            </div>
+            <div class="card" onclick="window.location.href='/report/monthly'">
+                <i class="fa-solid fa-calendar"></i>
+                <div class="card-title">Monthly Productivity</div>
+                <div>See your monthly report</div>
+            </div>
+            <div class="card" onclick="window.location.href='/report/issue'">
+                <i class="fa-solid fa-ticket"></i>
+                <div class="card-title">Issue Productivity</div>
+                <div>Check productivity for a Jira issue</div>
+            </div>
+            <div class="card" onclick="window.location.href='/report/timesheet'">
+                <i class="fa-solid fa-clock"></i>
+                <div class="card-title">Timesheet Completeness</div>
+                <div>Review your timesheet gaps</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

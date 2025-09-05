@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Issue Productivity</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/dashboard.css">
+    <style>
+        .report-container { max-width: 700px; margin: 40px auto; background: #fff; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.10); padding: 32px; }
+        h2 { color: #6e8efb; margin-bottom: 24px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; color: #333; }
+        input[type="text"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
+        .btn { background: #6e8efb; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; cursor: pointer; }
+        .btn:hover { background: #a777e3; }
+        .error { color: #e74c3c; margin-bottom: 12px; }
+        .results { margin-top: 24px; }
+        .issue-card { background: #f4f6fb; border-radius: 12px; padding: 20px; margin-top: 20px; }
+        .issue-title { font-size: 1.3rem; font-weight: bold; margin-bottom: 12px; }
+        .issue-detail { margin-bottom: 8px; display: flex; }
+        .detail-label { width: 140px; font-weight: 600; color: #555; }
+        .detail-value { flex: 1; }
+        .productive { color: #27ae60; }
+        .non-productive { color: #e74c3c; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: #6e8efb; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; margin-left: 10px; }
+        .badge-success { background: #27ae60; color: white; }
+        .badge-danger { background: #e74c3c; color: white; }
+        .badge-info { background: #3498db; color: white; }
+        .badge-warning { background: #f39c12; color: white; }
+        .score-box { margin-top: 20px; padding: 15px; border-radius: 8px; }
+        .score-box.good { background: rgba(39, 174, 96, 0.1); border: 1px solid #27ae60; }
+        .score-box.bad { background: rgba(231, 76, 60, 0.1); border: 1px solid #e74c3c; }
+        .score-box.neutral { background: rgba(52, 152, 219, 0.1); border: 1px solid #3498db; }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <a href="/dashboard/" class="back-link"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
+        <h2><i class="fa-solid fa-ticket"></i> Issue Productivity</h2>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="issue_key">Jira Issue Key (e.g., 'PROJ-123'):</label>
+                <input type="text" id="issue_key" name="issue_key" required placeholder="Enter issue key">
+            </div>
+            <button type="submit" class="btn">Get Productivity</button>
+        </form>
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        
+        {% if result %}
+            <div class="results">
+                <div class="issue-card">
+                    <div class="issue-title">{{ result.issue_key }} - {{ result.summary }}</div>
+                    
+                    <div class="issue-detail">
+                        <div class="detail-label">Type:</div>
+                        <div class="detail-value">{{ result.type }}</div>
+                    </div>
+                    
+                    <div class="issue-detail">
+                        <div class="detail-label">Status:</div>
+                        <div class="detail-value">{{ result.status }}</div>
+                    </div>
+                    
+                    <div class="issue-detail">
+                        <div class="detail-label">Activity Type:</div>
+                        <div class="detail-value">{{ result.activity_type|default:"Not Set" }}</div>
+                    </div>
+                    
+                    <div class="issue-detail">
+                        <div class="detail-label">Estimated Hours:</div>
+                        <div class="detail-value">{{ result.estimated_hours }}</div>
+                    </div>
+                    
+                    <div class="issue-detail">
+                        <div class="detail-label">Logged Hours:</div>
+                        <div class="detail-value">{{ result.logged_hours }}</div>
+                    </div>
+                    
+                    {% if result.is_productive_activity %}
+                        <div class="issue-detail">
+                            <div class="detail-label">Productivity Score:</div>
+                            <div class="detail-value {% if result.productivity_score > 0 %}productive{% elif result.productivity_score < 0 %}non-productive{% endif %}">
+                                {{ result.productivity_score }}%
+                                {% if result.productivity_score > 0 %}
+                                    <span class="badge badge-success">Good</span>
+                                {% elif result.productivity_score == 0 %}
+                                    <span class="badge badge-info">On Target</span>
+                                {% else %}
+                                    <span class="badge badge-danger">Over Estimate</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        {% if result.productivity_score > 0 %}
+                            <div class="score-box good">
+                                <strong>✅ Good!</strong> Completed under estimated time. This issue was completed more efficiently than expected.
+                            </div>
+                        {% elif result.productivity_score == 0 %}
+                            <div class="score-box neutral">
+                                <strong>⚠️ Exactly on estimate.</strong> The work took exactly as long as estimated.
+                            </div>
+                        {% else %}
+                            <div class="score-box bad">
+                                <strong>❌ Over estimated time.</strong> Consider reviewing your estimations for similar tasks in the future.
+                            </div>
+                        {% endif %}
+                        
+                    {% else %}
+                        <div class="issue-detail">
+                            <div class="detail-label">Productivity Score:</div>
+                            <div class="detail-value">
+                                N/A <span class="badge badge-warning">Not Included</span>
+                            </div>
+                        </div>
+                        <div class="score-box neutral">
+                            <strong>❌ Activity type not included in productivity calculations.</strong>
+                        </div>
+                    {% endif %}
+                    
+                    <div style="margin-top: 15px;">
+                        <a href="{{ result.link }}" target="_blank" style="color: #6e8efb;">View in Jira <i class="fa-solid fa-external-link-alt"></i></a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

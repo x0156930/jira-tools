@@ -1,18 +1,25 @@
-# .env
-.DS_Store
+# Python bytecode
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.db
-*.sqlite3
-*.log
-*.egg-info/
-dist/
-build/
+*.py[cod]
+*$py.class
+
+# Virtual environment
 venv/
-.venv/
 env/
-.env.*
-!/.env.example
+ENV/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment variables
 .env

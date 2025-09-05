@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timesheet Completeness</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/dashboard.css">
+    <style>
+        .report-container { max-width: 700px; margin: 40px auto; background: #fff; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.10); padding: 32px; }
+        h2 { color: #6e8efb; margin-bottom: 24px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; color: #333; }
+        input[type="date"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
+        .btn { background: #6e8efb; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; cursor: pointer; }
+        .btn:hover { background: #a777e3; }
+        .error { color: #e74c3c; margin-bottom: 12px; }
+        .results { margin-top: 24px; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: #6e8efb; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+
+        .completeness-card {
+            background: #f4f6fb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .progress-container {
+            margin: 25px 0;
+        }
+
+        .progress-bar {
+            height: 18px;
+            background-color: #e9ecef;
+            border-radius: 9px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 9px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .status-good { background-color: #27ae60; }
+        .status-warning { background-color: #f39c12; }
+        .status-danger { background-color: #e74c3c; }
+
+        .status-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .missing-days {
+            margin-top: 20px;
+        }
+
+        .missing-days h3 {
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .day-chip {
+            display: inline-block;
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+
+        .summary-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .summary-box.good {
+            background: rgba(39, 174, 96, 0.1);
+            border: 1px solid #27ae60;
+        }
+
+        .summary-box.warning {
+            background: rgba(243, 156, 18, 0.1);
+            border: 1px solid #f39c12;
+        }
+
+        .summary-box.bad {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <a href="/dashboard/" class="back-link"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
+        <h2><i class="fa-solid fa-calendar-check"></i> Timesheet Completeness</h2>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="start_date">Start Date:</label>
+                <input type="date" id="start_date" name="start_date" value="{{ start_date }}" required>
+            </div>
+            <div class="form-group">
+                <label for="end_date">End Date:</label>
+                <input type="date" id="end_date" name="end_date" value="{{ end_date }}" required>
+            </div>
+            <div class="form-group" style="display: flex; align-items: center;">
+                <input type="checkbox" id="exclude_weekends" name="exclude_weekends" checked style="margin-right: 8px; width: auto;">
+                <label for="exclude_weekends" style="margin-bottom: 0;">Exclude weekends</label>
+            </div>
+            <button type="submit" class="btn">Check Completeness</button>
+        </form>
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        
+        {% if result %}
+            <div class="results">
+                <div class="completeness-card">
+                    <h3>Timesheet Completeness: {{ result.start_date }} to {{ result.end_date }}</h3>
+                    
+                    <div class="progress-container">
+                        <div class="status-label">
+                            <span>Completeness</span>
+                            <span>{{ result.percentage_complete }}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill 
+                                {% if result.percentage_complete >= 90 %}status-good
+                                {% elif result.percentage_complete >= 70 %}status-warning
+                                {% else %}status-danger{% endif %}"
+                                style="width: {{ result.percentage_complete }}%">
+                                {{ result.percentage_complete }}%
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stats">
+                        <p><strong>Working days in period:</strong> {{ result.total_days }}</p>
+                        <p><strong>Days with time logged:</strong> {{ result.days_with_logs }}</p>
+                        <p><strong>Days missing time logs:</strong> {{ result.days_missing }}</p>
+                    </div>
+                    
+                    {% if result.days_missing > 0 %}
+                        <div class="missing-days">
+                            <h3>Missing Time Logs For:</h3>
+                            <div>
+                                {% for day in result.missing_dates %}
+                                    <span class="day-chip">{{ day }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    {% if result.percentage_complete >= 90 %}
+                        <div class="summary-box good">
+                            <strong>✅ Great job!</strong> Your timesheet is well maintained. Keep up the good work!
+                        </div>
+                    {% elif result.percentage_complete >= 70 %}
+                        <div class="summary-box warning">
+                            <strong>⚠️ Almost there!</strong> Your timesheet needs some attention. Please log time for the missing days.
+                        </div>
+                    {% else %}
+                        <div class="summary-box bad">
+                            <strong>❌ Attention needed!</strong> Your timesheet has significant gaps. Please update your time logs as soon as possible.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
