@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jira-work-hours"
+version = "0.2.0"
+description = "CLI to fetch Jira work hours and productivity"
+requires-python = ">=3.8"
+dependencies = [
+    "jira",
+    "python-dateutil",
+    "python-dotenv",
+    "dateparser"
+]
+
+[project.scripts]
+get-work-hours = "main:main"

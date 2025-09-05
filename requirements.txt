@@ -1,0 +1,3 @@
+jira
+python-dotenv
+dateparser
