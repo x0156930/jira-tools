@@ -639,148 +639,128 @@ if __name__ == "__main__":
     first_attempt = True
     
     while not jira:
+        # First try without forcing login (check keyring), then force if needed
         if first_attempt:
             ensure_credentials(force_login=False)
             first_attempt = False
         else:
+            # Retry - force new credentials
             print("Re-entering credentials...")
             ensure_credentials(force_login=True)
+            
         jira, jira_username = connect_to_jira()
+        
         if not jira:
             print("Connection failed.")
             retry = input("Try again with new credentials? (y/N): ").strip().lower()
             if retry not in {"y", "yes"}:
                 print("Exiting.")
                 sys.exit(1)
+            # Loop will continue and prompt again
         else:
             print("Connection successful.")
     
-    def print_menu():
-        print("\n1. Check daily work hours")
-        print("2. Check daily productivity")
-        print("3. Check Weekly Productivity")
-        print("4. Check last 15 days Productivity")
-        print("5. Check Monthly Productivity")
-        print("6. Check specific issue productivity")
-        print("7. Timesheet completeness (last 7 days)")
-        print("8. Edit login details (re-enter credentials)")
-        print("9. Exit")
-    
-    while True:
-        print_menu()
-        choice = input("\nEnter your choice (1-9): ").strip()
-        
-        if choice == "1":
-            date_input = input("Enter a date (e.g., '24th Aug', 'yesterday', 'today', '2025-08-27'): ")
-            get_jira_details(date_input, jira=jira, jira_username=jira_username)
-        
-        elif choice == "2":
-            date_input = input("Enter a date: ")
-            get_daily_productivity(date_input, jira, jira_username)
-        
-        elif choice == "3":
-            get_weekly_productivity(jira, jira_username)
-        
-        elif choice == "4":
-            get_last_15_days_productivity(jira, jira_username)
-        
-        elif choice == "5":
-            get_monthly_productivity(jira, jira_username)
-        
-        elif choice == "6":
-            issue_key = input("Enter the Jira issue key (e.g., 'PROJ-123'): ").strip().upper()
-            strict = input("Strict task status (Done only)? (y/N): ").strip().lower() in {"y","yes"}
-            aggregate_story = False
-            try:
-                tmp_issue = jira.issue(issue_key)
-                if (tmp_issue.fields.issuetype.name or "").lower().find("story") >= 0:
-                    has_est = bool(getattr(tmp_issue.fields, "timeoriginalestimate", None))
-                    default_yes = "Y" if not has_est else "N"
-                    aggregate_story = input(f"Aggregate story subtasks? (y/N) [default {default_yes}]: ").strip().lower()
-                    if aggregate_story == "":
-                        aggregate_story = (default_yes == "Y")
-                    else:
-                        aggregate_story = aggregate_story in {"y","yes"}
+    # Show menu only after successful connection
+    print("\n1. Check daily work hours")
+    print("2. Check daily productivity")
+    print("3. Check Weekly Productivity")
+    print("4. Check last 15 days Productivity")
+    print("5. Check Monthly Productivity")
+    print("6. Check specific issue productivity")
+    print("7. Timesheet completeness (last 7 days)")
+
+    choice = input("\nEnter your choice (1/2/3/4/5/6/7): ").strip()
+
+    if choice == "1":
+        date_input = input("Enter a date (e.g., '24th Aug', 'yesterday', 'today', '2025-08-27'): ")
+        get_jira_details(date_input, jira=jira, jira_username=jira_username)
+
+    elif choice == "2":
+        date_input = input("Enter a date: ")
+        get_daily_productivity(date_input, jira, jira_username)
+
+    elif choice == "3":
+        get_weekly_productivity(jira, jira_username)
+
+    elif choice == "4":
+        get_last_15_days_productivity(jira, jira_username)
+
+    elif choice == "5":
+        get_monthly_productivity(jira, jira_username)
+
+    elif choice == "6":
+        issue_key = input("Enter the Jira issue key (e.g., 'PROJ-123'): ").strip().upper()
+        strict = input("Strict task status (Done only)? (y/N): ").strip().lower() in {"y","yes"}
+        aggregate_story = False
+        # Peek type to decide prompt default
+        try:
+            tmp_issue = jira.issue(issue_key)
+            if (tmp_issue.fields.issuetype.name or "").lower().find("story") >= 0:
+                has_est = bool(getattr(tmp_issue.fields, "timeoriginalestimate", None))
+                default_yes = "Y" if not has_est else "N"
+                aggregate_story = input(f"Aggregate story subtasks? (y/N) [default {default_yes}]: ").strip().lower()
+                if aggregate_story == "":
+                    aggregate_story = (default_yes == "Y")
                 else:
-                    aggregate_story = False
-            except Exception:
-                pass
-            print(f"\n--- Productivity Report for {issue_key} ---")
-            result = get_issue_productivity(issue_key, jira, strict_task_status=strict, aggregate_story=aggregate_story)
-            if isinstance(result, dict):
-                if result.get("story_aggregate"):
-                    print(f"\nStory: {result['issue_key']} - {result['summary']} (Status: {result['story_status']})")
-                    print(f"Included Done subtasks: {result['included_subtasks_count']} | Missing est excluded: {result['excluded_subtasks_missing_estimate']}")
-                    print(f"Aggregated Estimated Hours: {result['aggregated_estimated_hours']}")
-                    print(f"Aggregated Logged Hours: {result['aggregated_logged_hours']}")
-                    agg_score = result['aggregated_productivity_score']
-                    if agg_score is not None:
-                        print(f"Aggregated Productivity Score: {agg_score}%")
-                    else:
-                        print("Aggregated Productivity Score: N/A (no estimates)")
-                    print("Subtasks:")
-                    for st in result['included_subtasks']:
-                        print(f"  - {st['key']} [{st['status']}] Est {st['estimated_hours']}h Logged {st['logged_hours']}h")
-                    print(f"Link: {result['link']}")
-                else:
-                    print(f"\nIssue: {result['issue_key']} - {result['summary']}")
-                    print(f"Type: {result['type']} | Status: {result['status']}")
-                    print(f"Activity Type: {result['activity_type']}")
-                    print(f"Estimated Hours: {result['estimated_hours']}")
-                    print(f"Total Logged Hours: {result['logged_hours']}")
-                if result['is_productive_activity']:
-                    print(f"Productivity Score: {result['productivity_score']}%")
-                    ps = result['productivity_score']
-                    if ps is not None:
-                        TARGET_MIN = 30.0
-                        TARGET_MAX = 45.0
-                        if TARGET_MIN <= ps <= TARGET_MAX:
-                            print("✅ Good productivity (within 30–45% target range). Great work.")
-                        elif ps > TARGET_MAX:
-                            print("ℹ️ Productivity above target range (>45%). Recheck if estimate was too high or if time is under‑logged.")
-                        elif ps >= 0:
-                            print("⚠️ Below target range (<30%). Add remaining work logs or validate the original estimate.")
-                        else:
-                            print("❌ Over estimate (logged more time than estimated). Review estimate or scope changes.")
-                    print("Activity type counted.")
-                else:
-                    print("Activity type not counted for productivity list.")
-                    print(f"Included types: {', '.join(PRODUCTIVE_ACTIVITY_TYPES)}")
-                    print(f"Link: {result['link']}")
+                    aggregate_story = aggregate_story in {"y","yes"}
             else:
-                print(result)
-        
-        elif choice == "7":
-            try:
-                days = int(input("Days back (default 7): ").strip() or "7")
-            except Exception:
-                days = 7
-            ex_we = input(f"Exclude weekends? (y/N, default {'Y' if EXCLUDE_WEEKENDS_DEFAULT else 'N'}): ").strip().lower()
-            exclude_weekends = EXCLUDE_WEEKENDS_DEFAULT if ex_we == "" else (ex_we in {"y", "yes"})
-            get_timesheet_completeness(jira, days_back=days, exclude_weekends=exclude_weekends)
-        
-        elif choice == "8":
-            print("\n=== Edit Login Details ===")
-            ensure_credentials(force_login=True)
-            # attempt reconnect with retry
-            for attempt in range(3):
-                new_jira, new_user = connect_to_jira()
-                if new_jira:
-                    jira = new_jira
-                    jira_username = new_user
-                    print("Credentials updated and reconnected.")
-                    break
+                aggregate_story = False
+        except Exception:
+            pass
+
+        print(f"\n--- Productivity Report for {issue_key} ---")
+        result = get_issue_productivity(issue_key, jira, strict_task_status=strict, aggregate_story=aggregate_story)
+
+        if isinstance(result, dict):
+            if result.get("story_aggregate"):
+                print(f"\nStory: {result['issue_key']} - {result['summary']} (Status: {result['story_status']})")
+                print(f"Included Done subtasks: {result['included_subtasks_count']} | Missing est excluded: {result['excluded_subtasks_missing_estimate']}")
+                print(f"Aggregated Estimated Hours: {result['aggregated_estimated_hours']}")
+                print(f"Aggregated Logged Hours: {result['aggregated_logged_hours']}")
+                agg_score = result['aggregated_productivity_score']
+                if agg_score is not None:
+                    print(f"Aggregated Productivity Score: {agg_score}%")
                 else:
-                    if attempt < 2:
-                        r = input("Reconnect failed. Retry? (y/N): ").strip().lower()
-                        if r not in {"y","yes"}:
-                            print("Keeping previous session (if still valid).")
-                            break
-                    else:
-                        print("Failed to reconnect after multiple attempts. Keeping previous session.")
-        
-        elif choice == "9":
-            print("Exiting.")
-            break
+                    print("Aggregated Productivity Score: N/A (no estimates)")
+                print("Subtasks:")
+                for st in result['included_subtasks']:
+                    print(f"  - {st['key']} [{st['status']}] Est {st['estimated_hours']}h Logged {st['logged_hours']}h")
+                print(f"Link: {result['link']}")
+            else:
+                print(f"\nIssue: {result['issue_key']} - {result['summary']}")
+                print(f"Type: {result['type']} | Status: {result['status']}")
+                print(f"Activity Type: {result['activity_type']}")
+                print(f"Estimated Hours: {result['estimated_hours']}")
+                print(f"Total Logged Hours: {result['logged_hours']}")
+            if result['is_productive_activity']:
+                print(f"Productivity Score: {result['productivity_score']}%")
+                ps = result['productivity_score']
+                if ps is not None:
+                    TARGET_MIN = 30.0
+                    TARGET_MAX = 45.0
+                    if TARGET_MIN <= ps <= TARGET_MAX:
+                        print("✅ Good productivity (within 30–45% target range). Great work.")
+                    elif ps > TARGET_MAX:
+                        print("ℹ️ Productivity above target range (>45%). Recheck if estimate was too high or if time is under‑logged.")
+                    elif ps >= 0:  # 0 <= ps < TARGET_MIN
+                        print("⚠️ Below target range (<30%). Add remaining work logs or validate the original estimate.")
+                    else:  # ps < 0
+                        print("❌ Over estimate (logged more time than estimated). Review estimate or scope changes.")
+                print("Activity type counted.")
+            else:
+                print("Activity type not counted for productivity list.")
+                print(f"Included types: {', '.join(PRODUCTIVE_ACTIVITY_TYPES)}")
+                print(f"Link: {result['link']}")
         else:
-            print("Invalid choice.")
+            print(result)
+
+    elif choice == "7":
+        try:
+            days = int(input("Days back (default 7): ").strip() or "7")
+        except Exception:
+            days = 7
+        ex_we = input(f"Exclude weekends? (y/N, default {'Y' if EXCLUDE_WEEKENDS_DEFAULT else 'N'}): ").strip().lower()
+        exclude_weekends = EXCLUDE_WEEKENDS_DEFAULT if ex_we == "" else (ex_we in {"y", "yes"})
+        get_timesheet_completeness(jira, days_back=days, exclude_weekends=exclude_weekends)
+    else:
+        print("Invalid choice.")
