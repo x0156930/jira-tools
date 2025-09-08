@@ -11,8 +11,9 @@ dependencies = [
     "jira",
     "python-dateutil",
     "python-dotenv",
-    "dateparser"
+    "dateparser",
+    "keyring"
 ]
 
 [project.scripts]
-get-work-hours = "main:main"
+get-work-hours = "jira_work_hours.cli:main"
