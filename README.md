@@ -2,6 +2,32 @@
 
 CLI utilities for Jira work hours, productivity, and timesheet completeness tracking.
 
+## Install (direct from GitHub)
+
+For users:
+
+```powershell
+pip install git+https://github.com/x0156930/jira-tools.git
+```
+
+Upgrade to latest main branch:
+
+```powershell
+pip install --upgrade --force-reinstall git+https://github.com/x0156930/jira-tools.git
+```
+
+Run the CLI:
+
+```powershell
+get-work-hours
+```
+
+Or module form:
+
+```powershell
+python -m jira_work_hours.cli
+```
+
 ## Install (editable dev mode)
 
 ```powershell
@@ -44,11 +70,13 @@ Menu options:
 5. Monthly productivity (last 30 days)
 6. Specific issue productivity report
 7. Timesheet completeness summary
+8. Edit login details (re-enter credentials / rotate PAT)
+9. Exit
 
-You can also run the module directly:
+You can also run the legacy wrapper (still supported):
 
 ```powershell
-python -m main
+python main.py
 ```
 
 ## Build distribution
@@ -71,4 +99,5 @@ twine upload dist/*
 * Productivity score = ((estimated - logged) / estimated) * 100.
 * Only issues whose activity type is in `PRODUCTIVE_ACTIVITY_TYPES` count toward final productivity.
 * Date inputs accept natural language (e.g. "yesterday", "2025-09-05").
+* Use option 8 to rotate credentials without restarting the program.
 
